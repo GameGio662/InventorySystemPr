@@ -10,6 +10,13 @@ public class PlayerMovement : MonoBehaviour
     public float mouseSensitivity = 2f;
     public Transform playerCamera;
 
+
+    public float pickupDistance = 3f;
+    public LayerMask pickupLayer;
+
+    private Camera cam;
+    private bool canPickup = true;
+
     Rigidbody rb;
     float pitch = 0f;
 
@@ -19,29 +26,40 @@ public class PlayerMovement : MonoBehaviour
         rb.freezeRotation = true; 
 
         Cursor.lockState = CursorLockMode.Locked;
+
+
+        cam = Camera.main;
     }
 
     void Update()
     {
-        HandleMouseLook();
+        //HandleMouseLook();
+
+        if (!canPickup) return;
+
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            TryPickup();
+        }
     }
+
 
     void FixedUpdate()
     {
         HandleMovement();
     }
 
-    void HandleMouseLook()
-    {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+    //void HandleMouseLook()
+    //{
+    //    float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+    //    float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        transform.Rotate(Vector3.up * mouseX);
+    //    transform.Rotate(Vector3.up * mouseX);
 
-        pitch -= mouseY;
-        pitch = Mathf.Clamp(pitch, -85f, 85f);
-        playerCamera.localRotation = Quaternion.Euler(pitch, 0, 0);
-    }
+    //    pitch -= mouseY;
+    //    pitch = Mathf.Clamp(pitch, -85f, 85f);
+    //    playerCamera.localRotation = Quaternion.Euler(pitch, 0, 0);
+    //}
 
     void HandleMovement()
     {
@@ -56,4 +74,31 @@ public class PlayerMovement : MonoBehaviour
 
         rb.AddForce(velocityChange, ForceMode.VelocityChange);
     }
+
+    void TryPickup()
+    {
+        Ray ray = new Ray(cam.transform.position, cam.transform.forward);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, pickupDistance, pickupLayer))
+        {
+            Item item = hit.collider.GetComponent<Item>();
+            if (item != null)
+            {
+                Inventory inv = GetComponent<Inventory>();
+                inv.AddItem(item.itemName, 1, item.itemIcon);
+
+                Destroy(item.gameObject);
+                StartCoroutine(PickupCooldown());
+            }
+        }
+    }
+
+    System.Collections.IEnumerator PickupCooldown()
+    {
+        canPickup = false;
+        yield return new WaitForSeconds(0.15f);
+        canPickup = true;
+    }
+
 }

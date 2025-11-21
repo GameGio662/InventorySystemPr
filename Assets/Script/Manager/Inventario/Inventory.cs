@@ -4,49 +4,41 @@ using UnityEngine;
 
 public class Inventory : MonoBehaviour
 {
-    public int inventorySize = 20;
     public List<InventorySystem> items = new List<InventorySystem>();
-
+    public InventoryUI ui;
 
     public void AddItem(string itemName, int amount, Sprite icon)
     {
-        string cleanName = itemName.Replace("(Clone)", "").Trim();
-        InventorySystem existingItem = items.Find(i => i.itemName.ToLower() == cleanName.ToLower());
-        if (existingItem != null)
+        InventorySystem existing = items.Find(x => x.itemName == itemName);
+
+        if (existing != null)
         {
-            existingItem.stack += amount;
-            return;
+            int newStack = existing.stack + amount;
+
+            if (newStack <= existing.maxStack)
+            {
+                existing.stack = newStack;
+            }
+            else
+            {
+                int overflow = newStack - existing.maxStack;
+                existing.stack = existing.maxStack;
+
+                if (items.Count < 27)
+                {
+                    items.Add(new InventorySystem(itemName, overflow, icon));
+                }
+            }
         }
-        if (items.Count < inventorySize)
+        else
         {
-            items.Add(new InventorySystem(cleanName, amount, icon));
+            if (items.Count < 27)
+            {
+                items.Add(new InventorySystem(itemName, amount, icon));
+            }
         }
-    }
 
-
-    public void RemoveItem(string itemName, int amount)
-    {
-        InventorySystem item = items.Find(i => i.itemName.ToLower() == itemName.ToLower());
-        if (item != null)
-        {
-            item.stack -= amount;
-            if (item.stack <= 0)
-                items.Remove(item);
-        }
-    }
-
-
-    public bool HasItem(string itemName, int amount)
-    {
-        InventorySystem item = items.Find(i => i.itemName.ToLower() == itemName.ToLower());
-        return item != null && item.stack >= amount;
-    }
-
-
-    public void PrintInventory()
-    {
-        foreach (var item in items)
-            Debug.Log(item.itemName + " x" + item.stack);
+        ui.UpdateUI(items);
     }
 }
 
