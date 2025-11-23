@@ -13,12 +13,11 @@ public class PlayerMovement : MonoBehaviour
 
     public float pickupDistance = 3f;
     public LayerMask pickupLayer;
-
+    public Inventory inventory;
     private Camera cam;
     private bool canPickup = true;
 
     Rigidbody rb;
-    float pitch = 0f;
 
     void Start()
     {
@@ -34,13 +33,8 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         //HandleMouseLook();
-
         if (!canPickup) return;
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            TryPickup();
-        }
+        if (Input.GetKeyDown(KeyCode.F)) TryPickup();
     }
 
 
@@ -49,17 +43,6 @@ public class PlayerMovement : MonoBehaviour
         HandleMovement();
     }
 
-    //void HandleMouseLook()
-    //{
-    //    float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-    //    float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
-
-    //    transform.Rotate(Vector3.up * mouseX);
-
-    //    pitch -= mouseY;
-    //    pitch = Mathf.Clamp(pitch, -85f, 85f);
-    //    playerCamera.localRotation = Quaternion.Euler(pitch, 0, 0);
-    //}
 
     void HandleMovement()
     {
@@ -78,23 +61,19 @@ public class PlayerMovement : MonoBehaviour
     void TryPickup()
     {
         Ray ray = new Ray(cam.transform.position, cam.transform.forward);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, pickupDistance, pickupLayer))
+        if (Physics.Raycast(ray, out RaycastHit hit, pickupDistance, pickupLayer))
         {
             Item item = hit.collider.GetComponent<Item>();
-            if (item != null)
+            if (item != null && inventory != null)
             {
-                Inventory inv = GetComponent<Inventory>();
-                inv.AddItem(item.itemName, 1, item.itemIcon);
-
+                inventory.AddItem(item.itemName, 1, item.itemIcon);
                 Destroy(item.gameObject);
                 StartCoroutine(PickupCooldown());
             }
         }
     }
 
-    System.Collections.IEnumerator PickupCooldown()
+    IEnumerator PickupCooldown()
     {
         canPickup = false;
         yield return new WaitForSeconds(0.15f);

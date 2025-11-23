@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Item : MonoBehaviour
@@ -12,5 +10,4 @@ public class Item : MonoBehaviour
         if (string.IsNullOrEmpty(itemName))
             itemName = gameObject.name.Replace("(Clone)", "").Trim();
     }
-
 }

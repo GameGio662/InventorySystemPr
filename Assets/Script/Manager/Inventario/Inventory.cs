@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,12 +8,14 @@ public class Inventory : MonoBehaviour
 
     public void AddItem(string itemName, int amount, Sprite icon)
     {
-        InventorySystem existing = items.Find(x => x.itemName == itemName);
+        if (string.IsNullOrEmpty(itemName)) return;
+        string clean = itemName.Replace("(Clone)", "").Trim();
+
+        InventorySystem existing = items.Find(x => x.itemName.ToLower() == clean.ToLower());
 
         if (existing != null)
         {
             int newStack = existing.stack + amount;
-
             if (newStack <= existing.maxStack)
             {
                 existing.stack = newStack;
@@ -23,22 +24,17 @@ public class Inventory : MonoBehaviour
             {
                 int overflow = newStack - existing.maxStack;
                 existing.stack = existing.maxStack;
-
                 if (items.Count < 27)
-                {
-                    items.Add(new InventorySystem(itemName, overflow, icon));
-                }
+                    items.Add(new InventorySystem(clean, overflow, icon));
             }
         }
         else
         {
             if (items.Count < 27)
-            {
-                items.Add(new InventorySystem(itemName, amount, icon));
-            }
+                items.Add(new InventorySystem(clean, amount, icon));
         }
 
-        ui.UpdateUI(items);
+        if (ui != null) ui.UpdateUI(items);
+        else Debug.LogWarning("Inventory: UI reference is null. Assign InventoryUI in inspector.");
     }
 }
-
