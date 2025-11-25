@@ -15,37 +15,75 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask pickupLayer;
     public Inventory inventory;
     private Camera cam;
-    private bool canPickup = true;
+    public bool canPickup = true;
 
-    Rigidbody rb;
+    public bool canLook = true;
+
+
+
+    [Header("Power Up")]
+    public float boostedSpeed = 12f;
+    public float boostDuration = 2f;
+    private bool speedBoostActive = false;
+
+    [Header("Jump")]
+    public float jumpForce = 8f;      
+    public bool jumpBoostArmed = false; 
+
+    public Rigidbody rb;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.freezeRotation = true; 
+        rb.freezeRotation = true;
 
         Cursor.lockState = CursorLockMode.Locked;
-
+        Cursor.visible = false;
 
         cam = Camera.main;
     }
 
     void Update()
     {
-        //HandleMouseLook();
-        if (!canPickup) return;
-        if (Input.GetKeyDown(KeyCode.F)) TryPickup();
+        if (canLook)
+        {
+            HandleMouseLook();
+            HandleMovement();
+
+        }
+
+        
+        if (jumpBoostArmed && Input.GetKeyDown(KeyCode.Space))
+        {
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            jumpBoostArmed = false;
+        }
+
+        
+
+        if (Input.GetKeyDown(KeyCode.F))
+            TryPickup();
     }
 
 
-    void FixedUpdate()
+
+
+    void HandleMouseLook()
     {
-        HandleMovement();
+     
+
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        transform.Rotate(Vector3.up * mouseX);
+        playerCamera.localEulerAngles += new Vector3(-mouseY, 0, 0);
     }
 
 
     void HandleMovement()
     {
+        if (!canLook) return;
+
         float x = Input.GetAxisRaw("Horizontal");
         float z = Input.GetAxisRaw("Vertical");
 
@@ -53,7 +91,7 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 targetVelocity = direction * moveSpeed;
         Vector3 velocityChange = targetVelocity - rb.velocity;
-        velocityChange.y = 0; 
+        velocityChange.y = 0;
 
         rb.AddForce(velocityChange, ForceMode.VelocityChange);
     }
@@ -66,7 +104,7 @@ public class PlayerMovement : MonoBehaviour
             Item item = hit.collider.GetComponent<Item>();
             if (item != null && inventory != null)
             {
-                inventory.AddItem(item.itemName, 1, item.itemIcon);
+                inventory.AddItem(item.itemName, 1, item.itemIcon, item.isUsable, item.effectType);
                 Destroy(item.gameObject);
                 StartCoroutine(PickupCooldown());
             }
@@ -78,6 +116,29 @@ public class PlayerMovement : MonoBehaviour
         canPickup = false;
         yield return new WaitForSeconds(0.15f);
         canPickup = true;
+    }
+
+
+    public IEnumerator SpeedBoostRoutine()
+    {
+        if (speedBoostActive)
+            yield break; 
+
+        speedBoostActive = true;
+
+        float originalSpeed = moveSpeed;
+        moveSpeed = boostedSpeed;
+
+        yield return new WaitForSeconds(boostDuration);
+
+        moveSpeed = originalSpeed;
+        speedBoostActive = false;
+    }
+
+    public void ArmJumpBoost()
+    {
+        jumpBoostArmed = true;
+        Debug.Log("JumpBoost ARMATO: premi SPAZIO per saltare.");
     }
 
 }

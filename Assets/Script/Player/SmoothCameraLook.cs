@@ -12,6 +12,8 @@ public class SmoothCameraLook : MonoBehaviour
     private Vector2 smoothVelocity;
     private Vector2 currentLook;
 
+    public bool canLook = true;
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -19,20 +21,25 @@ public class SmoothCameraLook : MonoBehaviour
 
     void Update()
     {
-        Vector2 mouseInput = new Vector2(
-            Input.GetAxisRaw("Mouse X"),
-            Input.GetAxisRaw("Mouse Y")
-        );
+        if (canLook)
+        {
+            
 
-        mouseInput *= sensitivity * Time.deltaTime;
+            Vector2 mouseInput = new Vector2(
+                Input.GetAxisRaw("Mouse X"),
+                Input.GetAxisRaw("Mouse Y")
+            );
 
-        smoothVelocity = Vector2.Lerp(smoothVelocity, mouseInput, 1f / smoothing);
-        currentLook += smoothVelocity;
+            mouseInput *= sensitivity * Time.deltaTime;
 
-        currentLook.y = Mathf.Clamp(currentLook.y, -90f, 90f);
+            smoothVelocity = Vector2.Lerp(smoothVelocity, mouseInput, 1f / smoothing);
+            currentLook += smoothVelocity;
 
-        playerBody.localRotation = Quaternion.Euler(0f, currentLook.x, 0f);
-        Camera.main.transform.localRotation = Quaternion.Euler(-currentLook.y, 0f, 0f);
+            currentLook.y = Mathf.Clamp(currentLook.y, -90f, 90f);
+
+            playerBody.localRotation = Quaternion.Euler(0f, currentLook.x, 0f);
+            Camera.main.transform.localRotation = Quaternion.Euler(-currentLook.y, 0f, 0f);
+        }
     }
 
 }

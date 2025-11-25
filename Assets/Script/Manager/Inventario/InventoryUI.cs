@@ -1,121 +1,116 @@
 using System.Collections.Generic;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class InventoryUI : MonoBehaviour
 {
+    [Header("UI Riferimenti")]
     public GameObject inventoryPanel;
-    public Inventory inventory;
-    public KeyCode toggleKey = KeyCode.E;
+    public InventorySlot slotPrefab;
+    public Transform slotsParent;
+    public PlayerMovement player;
 
-    private InventorySlot[] slotScripts;
-    private int selectedSlot = -1;
+    [Header("Dati inventario")]
+    public Inventory playerInventory;
+    public List<InventorySlot> slotList = new List<InventorySlot>();
 
-    private bool isOpen = false;
+    private bool inventoryOpen = false;
 
-    private void Awake()
+    void Start()
     {
-        AutoAssignSlots();
-    }
-
-    private void Start()
-    {
-        if (inventoryPanel != null) inventoryPanel.SetActive(false);
-        if (inventory != null) inventory.ui = this;
+        Debug.Log("[InventoryUI] Start");
 
         
+        if (slotsParent != null && slotPrefab != null && slotList.Count == 0)
+        {
+            GenerateSlots(playerInventory.inventorySize);
+            UpdateUI(playerInventory.items);
+        }
+
+       
+        inventoryOpen = false;
+
+        if (inventoryPanel != null)
+        {
+            inventoryPanel.SetActive(false);
+            Debug.Log("[InventoryUI] inventoryPanel.SetActive(false) in Start");
+        }
+        else
+        {
+            Debug.LogError("[InventoryUI] inventoryPanel NON assegnato!");
+        }
+
+       
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        if (player != null)
+            player.canLook = true;
     }
 
-    private void Update()
+    void Update()
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (Input.GetKeyDown(KeyCode.E))
         {
+            Debug.Log("[InventoryUI] Premi E");
             ToggleInventory();
         }
     }
 
-
-    void ToggleInventory()
+    public void ToggleInventory()
     {
-        isOpen = !isOpen;
-        inventoryPanel.SetActive(isOpen);
+        inventoryOpen = !inventoryOpen;
+        Debug.Log("[InventoryUI] ToggleInventory -> inventoryOpen = " + inventoryOpen);
 
-        
-        Cursor.visible = isOpen;
-        Cursor.lockState = isOpen ? CursorLockMode.None : CursorLockMode.Locked;
-    }
-
-
-
-    private void AutoAssignSlots()
-    {
-        slotScripts = GetComponentsInChildren<InventorySlot>(true);
-        for (int i = 0; i < slotScripts.Length; i++)
+        if (inventoryPanel != null)
         {
-            slotScripts[i].slotIndex = i;
-            slotScripts[i].ui = this;
-
-           
-            if (slotScripts[i].icon == null)
-                slotScripts[i].icon = slotScripts[i].GetComponentInChildren<UnityEngine.UI.Image>(true);
-            if (slotScripts[i].stackText == null)
-                slotScripts[i].stackText = slotScripts[i].GetComponentInChildren<TMPro.TMP_Text>(true);
+            inventoryPanel.SetActive(inventoryOpen);
+            Debug.Log("[InventoryUI] inventoryPanel activeSelf = " + inventoryPanel.activeSelf);
         }
 
-        Debug.Log("InventoryUI: AutoAssigned slots = " + slotScripts.Length);
-        if (slotScripts.Length == 0) Debug.LogWarning("InventoryUI: no InventorySlot children found. Make sure slots are children of this GameObject (or its descendants).");
+      
+        if (!inventoryOpen && InventoryContextMenu.Instance != null)
+        {
+            InventoryContextMenu.Instance.Hide();
+        }
+
+        if (inventoryOpen)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
+            if (player != null)
+                player.canLook = false;
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+            if (player != null)
+                player.canLook = true;
+        }
+    }
+
+    public void GenerateSlots(int amount)
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            InventorySlot newSlot = Instantiate(slotPrefab, slotsParent);
+            newSlot.gameObject.SetActive(true);
+            newSlot.slotIndex = i;
+            slotList.Add(newSlot);
+        }
     }
 
     public void UpdateUI(List<InventorySystem> items)
     {
-        if (slotScripts == null) AutoAssignSlots();
-
-        for (int i = 0; i < slotScripts.Length; i++)
+        for (int i = 0; i < slotList.Count; i++)
         {
             if (i < items.Count)
-                slotScripts[i].SetItem(items[i].itemIcon, items[i].stack);
+                slotList[i].SetItem(items[i]);
             else
-                slotScripts[i].Clear();
+                slotList[i].ClearSlot();
         }
-    }
-
-    public void OnSlotClicked(int index)
-    {
-        if (inventory == null)
-        {
-            Debug.LogWarning("InventoryUI: Inventory reference missing.");
-            return;
-        }
-
-        if (selectedSlot == -1)
-        {
-            if (index < inventory.items.Count) selectedSlot = index;
-            return;
-        }
-
-        if (selectedSlot == index)
-        {
-            selectedSlot = -1;
-            return;
-        }
-
-        if (selectedSlot < inventory.items.Count)
-        {
-            if (index < inventory.items.Count)
-            {
-                var temp = inventory.items[selectedSlot];
-                inventory.items[selectedSlot] = inventory.items[index];
-                inventory.items[index] = temp;
-            }
-            else
-            {
-                var moved = inventory.items[selectedSlot];
-                inventory.items.RemoveAt(selectedSlot);
-                inventory.items.Add(moved);
-            }
-        }
-
-        selectedSlot = -1;
-        UpdateUI(inventory.items);
     }
 }
